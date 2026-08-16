@@ -374,6 +374,11 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
         _userMessage.value = "Signed in to Cloud as $name ($email)"
     }
 
+    fun setGuestMode() {
+        cloudSyncEngine.setGuestMode(true)
+        _userMessage.value = "Continued as Guest Account"
+    }
+
     fun signOutCloud() {
         cloudSyncEngine.signOut()
         _userMessage.value = "Signed out of Cloud Sync"

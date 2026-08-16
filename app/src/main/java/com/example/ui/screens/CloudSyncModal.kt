@@ -18,6 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -49,12 +52,17 @@ fun CloudSyncModal(
     onSignOut: () -> Unit,
     onOpenProject: (String) -> Unit
 ) {
+    val context = LocalContext.current
     var showDeviceRenameDialog by remember { mutableStateOf(false) }
     var deviceNameInput by remember { mutableStateOf(syncState.currentDeviceName) }
 
     var showAccountDialog by remember { mutableStateOf(false) }
     var emailInput by remember { mutableStateOf(syncState.userEmail ?: "developer@aistudio.com") }
     var nameInput by remember { mutableStateOf(syncState.userDisplayName ?: "Android Dev") }
+    var verificationCodeSent by remember { mutableStateOf(false) }
+    var verificationCodeInput by remember { mutableStateOf("") }
+    var expectedCode by remember { mutableStateOf("") }
+    var verificationError by remember { mutableStateOf<String?>(null) }
 
     var selectedTab by remember { mutableIntStateOf(0) } // 0 = Cloud Vault, 1 = Local Sync Status, 2 = Device & Settings
 
@@ -116,7 +124,7 @@ fun CloudSyncModal(
             containerColor = SleekSurface,
             title = {
                 Text(
-                    text = "Cloud Account & Firebase Auth",
+                    text = "Sign In & Cloud Account",
                     fontWeight = FontWeight.Bold,
                     color = SleekTextPrimary
                 )
@@ -124,10 +132,72 @@ fun CloudSyncModal(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        text = "Sign in or link your developer account to sync projects across your phone, tablet, and desktop emulators.",
+                        text = "Choose your preferred authentication provider to sign in and sync your projects securely to the cloud:",
                         fontSize = 12.sp,
                         color = SleekTextSecondary
                     )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Google Login Button
+                    Button(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://ai.studio/auth/google"))
+                            try { context.startActivity(intent) } catch (e: Exception) {}
+                            showAccountDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4285F4)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.CloudSync, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Sign In with Google", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                    // Microsoft Login Button
+                    Button(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://ai.studio/auth/microsoft"))
+                            try { context.startActivity(intent) } catch (e: Exception) {}
+                            showAccountDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00A4EF)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.CloudSync, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Sign In with Microsoft", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                    // Apple ID Login Button
+                    Button(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://ai.studio/auth/apple"))
+                            try { context.startActivity(intent) } catch (e: Exception) {}
+                            showAccountDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF333333)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.CloudSync, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Sign In with Apple", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                    HorizontalDivider(color = SleekCardBorder)
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "Or link with Email / Custom Account:",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = SleekTextSecondary
+                    )
+
                     OutlinedTextField(
                         value = nameInput,
                         onValueChange = { nameInput = it },
@@ -144,7 +214,7 @@ fun CloudSyncModal(
                     OutlinedTextField(
                         value = emailInput,
                         onValueChange = { emailInput = it },
-                        label = { Text("Google / Firebase Email") },
+                        label = { Text("Email Address") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -154,21 +224,99 @@ fun CloudSyncModal(
                             unfocusedTextColor = SleekTextPrimary
                         )
                     )
+
+                    if (!verificationCodeSent) {
+                        Button(
+                            onClick = {
+                                if (emailInput.isNotBlank()) {
+                                    val code = (100000..999999).random().toString()
+                                    expectedCode = code
+                                    verificationCodeSent = true
+                                    verificationError = null
+                                } else {
+                                    verificationError = "Please enter a valid email address first"
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = SleekPrimary),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.VerifiedUser, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Send Anti-Bot Verification Code", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = SleekPrimaryContainer.copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = "Verification code sent to $emailInput",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = SleekPrimary
+                                );
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Simulated Anti-Bot Code: [ $expectedCode ] (Copy & paste below)",
+                                    fontSize = 11.sp,
+                                    color = SleekTextPrimary
+                                )
+                            }
+                        }
+
+                        OutlinedTextField(
+                            value = verificationCodeInput,
+                            onValueChange = { verificationCodeInput = it },
+                            label = { Text("Enter 6-Digit Verification Code") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = SleekPrimary,
+                                unfocusedBorderColor = SleekCardBorder,
+                                focusedTextColor = SleekTextPrimary,
+                                unfocusedTextColor = SleekTextPrimary
+                            )
+                        )
+                    }
+
+                    if (verificationError != null) {
+                        Text(
+                            text = verificationError!!,
+                            fontSize = 11.sp,
+                            color = Color(0xFFFF5252),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        onSetAccount(emailInput, nameInput)
-                        showAccountDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = SleekPrimary)
-                ) {
-                    Text("Link Account", color = Color.White)
+                if (verificationCodeSent) {
+                    Button(
+                        onClick = {
+                            if (verificationCodeInput.trim() == expectedCode.trim()) {
+                                onSetAccount(emailInput, nameInput)
+                                showAccountDialog = false
+                                verificationCodeSent = false
+                                verificationCodeInput = ""
+                            } else {
+                                verificationError = "Incorrect verification code. Please check and try again."
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = SleekPrimary)
+                    ) {
+                        Text("Verify & Link Account", color = Color.White)
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showAccountDialog = false }) {
+                TextButton(onClick = {
+                    showAccountDialog = false
+                    verificationCodeSent = false
+                    verificationCodeInput = ""
+                }) {
                     Text("Cancel", color = SleekTextSecondary)
                 }
             }
@@ -531,6 +679,24 @@ fun CloudSyncModal(
                                     }
                                 }
                             }
+                        }
+
+                        Button(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://ai.studio/auth/login"))
+                                try {
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {}
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("web_login_btn"),
+                            colors = ButtonDefaults.buttonColors(containerColor = SleekPrimary),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Sign In via Web Login Page", color = Color.White, fontWeight = FontWeight.Bold)
                         }
 
                         // Auto-Sync Toggle Card

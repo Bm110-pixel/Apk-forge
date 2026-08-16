@@ -66,7 +66,28 @@ fun StudioHomeScreen(
     var showAnalyticsDialog by remember { mutableStateOf(false) }
     var showCloudSyncDialog by remember { mutableStateOf(false) }
     var showTutorialDialog by remember { mutableStateOf(false) }
+    var showAccountBadgesDialog by remember { mutableStateOf(false) }
     var previewProject by remember { mutableStateOf<AppProject?>(null) }
+
+    if (!cloudSyncState.isSignedIn) {
+        LoginOrGuestModal(
+            onLoginSuccess = { email, name ->
+                viewModel.setCloudAccount(email, name)
+            },
+            onGuestSelected = {
+                viewModel.setGuestMode()
+            }
+        )
+        return
+    }
+
+    if (showAccountBadgesDialog) {
+        AccountBadgesModal(
+            syncState = cloudSyncState,
+            onDismiss = { showAccountBadgesDialog = false },
+            onSignOut = { viewModel.signOutCloud() }
+        )
+    }
 
     val errorCount = diagLogs.count { it.level == com.example.data.model.LogLevel.ERROR && !it.isResolved }
 
@@ -276,6 +297,18 @@ fun StudioHomeScreen(
                     }
                 },
                 actions = {
+                    // Account & Badges Action
+                    IconButton(
+                        onClick = { showAccountBadgesDialog = true },
+                        modifier = Modifier.testTag("open_account_badges_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "Account & Badges",
+                            tint = Color(0xFF00E676)
+                        )
+                    }
+
                     // Tutorial Walkthrough Guide
                     IconButton(
                         onClick = { showTutorialDialog = true },

@@ -305,6 +305,7 @@ data class CloudSyncState(
     val userEmail: String? = null,
     val userDisplayName: String? = null,
     val isSignedIn: Boolean = false,
+    val isGuestMode: Boolean = false,
     val isFirebaseReady: Boolean = true
 )
 

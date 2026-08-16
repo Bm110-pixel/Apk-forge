@@ -73,9 +73,10 @@ class FirebaseCloudSyncEngine private constructor(private val context: Context) 
 
     private fun loadInitialState(): CloudSyncState {
         val autoSync = prefs.getBoolean(KEY_AUTO_SYNC, true)
-        val userEmail = prefs.getString(KEY_USER_EMAIL, "developer@aistudio.com")
-        val userName = prefs.getString(KEY_USER_NAME, "AI Studio Dev")
-        val isSignedIn = prefs.getBoolean(KEY_IS_SIGNED_IN, true)
+        val isGuest = prefs.getBoolean(KEY_IS_GUEST_MODE, false)
+        val isSignedIn = prefs.getBoolean(KEY_IS_SIGNED_IN, false) || isGuest
+        val userEmail = prefs.getString(KEY_USER_EMAIL, if (isGuest) "guest@aistudio.local" else null)
+        val userName = prefs.getString(KEY_USER_NAME, if (isGuest) "Guest User" else null)
         val lastSync = prefs.getLong(KEY_LAST_SYNC, 0L).takeIf { it > 0 }
 
         val cachedProjects = loadCachedCloudProjects()
@@ -91,7 +92,24 @@ class FirebaseCloudSyncEngine private constructor(private val context: Context) 
             userEmail = userEmail,
             userDisplayName = userName,
             isSignedIn = isSignedIn,
+            isGuestMode = isGuest,
             isFirebaseReady = true
+        )
+    }
+
+    fun setGuestMode(enabled: Boolean) {
+        prefs.edit()
+            .putBoolean(KEY_IS_GUEST_MODE, enabled)
+            .putBoolean(KEY_IS_SIGNED_IN, true)
+            .putString(KEY_USER_EMAIL, "guest@aistudio.local")
+            .putString(KEY_USER_NAME, "Guest User")
+            .apply()
+
+        _syncState.value = _syncState.value.copy(
+            isGuestMode = enabled,
+            isSignedIn = true,
+            userEmail = "guest@aistudio.local",
+            userDisplayName = "Guest User"
         )
     }
 
@@ -602,6 +620,7 @@ class FirebaseCloudSyncEngine private constructor(private val context: Context) 
         private const val KEY_USER_EMAIL = "key_user_email"
         private const val KEY_USER_NAME = "key_user_name"
         private const val KEY_IS_SIGNED_IN = "key_is_signed_in"
+        private const val KEY_IS_GUEST_MODE = "key_is_guest_mode"
         private const val KEY_LAST_SYNC = "key_last_sync"
         private const val KEY_CLOUD_PROJECTS_CACHE = "key_cloud_projects_cache"
 
