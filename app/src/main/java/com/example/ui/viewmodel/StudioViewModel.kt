@@ -10,6 +10,7 @@ import com.example.data.db.AppDatabase
 import com.example.data.model.AiConfiguration
 import com.example.data.model.ApkBuildRecord
 import com.example.data.model.AppProject
+import com.example.data.model.UiComponent
 import com.example.data.model.StoreAsset
 import com.example.data.model.SubscriptionStatus
 import com.example.data.preferences.SubscriptionManager
@@ -55,6 +56,13 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _userMessage = MutableStateFlow<String?>(null)
     val userMessage: StateFlow<String?> = _userMessage.asStateFlow()
+
+    private val _isDarkMode = MutableStateFlow(false)
+    val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
+
+    fun setDarkMode(enabled: Boolean) {
+        _isDarkMode.value = enabled
+    }
 
     init {
         val database = AppDatabase.getDatabase(application)
@@ -127,6 +135,10 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
                 _generationState.value = StudioUiState.Error(e.message ?: "Failed to load template")
             }
         }
+    }
+
+    suspend fun getComponentsForProject(projectId: String): List<UiComponent> {
+        return repository.getComponentsForProjectSync(projectId)
     }
 
     fun redeemPromoCode(code: String): Result<SubscriptionStatus> {

@@ -28,10 +28,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
+            val studioViewModel: StudioViewModel = viewModel()
+            val editorViewModel: EditorViewModel = viewModel()
+            val isDarkMode by studioViewModel.isDarkMode.collectAsState()
+
+            MyApplicationTheme(darkTheme = isDarkMode) {
                 val navController = rememberNavController()
-                val studioViewModel: StudioViewModel = viewModel()
-                val editorViewModel: EditorViewModel = viewModel()
 
                 var showAiDialog by remember { mutableStateOf(false) }
 

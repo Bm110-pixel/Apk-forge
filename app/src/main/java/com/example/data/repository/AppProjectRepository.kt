@@ -145,6 +145,10 @@ class AppProjectRepository(private val database: AppDatabase) {
         }
     }
 
+    suspend fun getComponentsForProjectSync(projectId: String): List<UiComponent> = withContext(Dispatchers.IO) {
+        componentDao.getComponentsList(projectId)
+    }
+
     suspend fun buildApk(
         context: Context,
         projectId: String,

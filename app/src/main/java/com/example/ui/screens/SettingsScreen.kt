@@ -199,6 +199,68 @@ fun SettingsScreen(
                 }
             }
 
+            // ================= APPEARANCE & THEME SETTINGS =================
+            item {
+                val isDarkMode by viewModel.isDarkMode.collectAsState()
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, SleekCardBorder, RoundedCornerShape(20.dp))
+                        .testTag("appearance_settings_card"),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = SleekSurface)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    modifier = Modifier.size(44.dp),
+                                    shape = CircleShape,
+                                    color = SleekPrimaryContainer
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = if (isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
+                                            contentDescription = null,
+                                            tint = SleekPrimary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "Dark Theme",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = SleekTextPrimary
+                                    )
+                                    Text(
+                                        text = "Reduce eye strain during long design sessions",
+                                        fontSize = 12.sp,
+                                        color = SleekTextSecondary
+                                    )
+                                }
+                            }
+
+                            Switch(
+                                checked = isDarkMode,
+                                onCheckedChange = { viewModel.setDarkMode(it) },
+                                modifier = Modifier.testTag("dark_mode_switch")
+                            )
+                        }
+                    }
+                }
+            }
+
             // ================= PROMO CODES / REDEEM SECTION =================
             item {
                 Card(

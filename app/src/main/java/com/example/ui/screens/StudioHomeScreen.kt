@@ -66,6 +66,7 @@ fun StudioHomeScreen(
     var showAnalyticsDialog by remember { mutableStateOf(false) }
     var showCloudSyncDialog by remember { mutableStateOf(false) }
     var showTutorialDialog by remember { mutableStateOf(false) }
+    var previewProject by remember { mutableStateOf<AppProject?>(null) }
 
     val errorCount = diagLogs.count { it.level == com.example.data.model.LogLevel.ERROR && !it.isResolved }
 
@@ -103,6 +104,19 @@ fun StudioHomeScreen(
             },
             onClaimReward = {
                 viewModel.claimTutorialCompletionReward()
+            }
+        )
+    }
+
+    if (previewProject != null) {
+        ProjectPreviewModal(
+            project = previewProject!!,
+            loadComponents = { id -> viewModel.getComponentsForProject(id) },
+            onDismiss = { previewProject = null },
+            onOpenFullEditor = {
+                val id = previewProject!!.id
+                previewProject = null
+                onOpenEditor(id)
             }
         )
     }
@@ -566,7 +580,8 @@ fun StudioHomeScreen(
                         onEdit = { onOpenEditor(project.id) },
                         onQuickBuild = { viewModel.quickBuildApk(context, project.id) },
                         onDelete = { viewModel.deleteProject(project.id) },
-                        onToggleStar = { viewModel.toggleProjectStar(project.id) }
+                        onToggleStar = { viewModel.toggleProjectStar(project.id) },
+                        onPreview = { previewProject = project }
                     )
                 }
             }
@@ -863,7 +878,8 @@ fun ProjectItemCard(
     onEdit: () -> Unit,
     onQuickBuild: () -> Unit,
     onDelete: () -> Unit,
-    onToggleStar: () -> Unit
+    onToggleStar: () -> Unit,
+    onPreview: () -> Unit
 ) {
     val views = if (project.viewCount > 0) project.viewCount else 120
     val dls = if (project.downloadCount > 0) project.downloadCount else 35
@@ -1083,7 +1099,7 @@ fun ProjectItemCard(
                 Button(
                     onClick = onEdit,
                     modifier = Modifier
-                        .weight(1.3f)
+                        .weight(1.2f)
                         .height(42.dp)
                         .testTag("edit_project_btn_${project.id}"),
                     shape = RoundedCornerShape(10.dp),
@@ -1093,8 +1109,23 @@ fun ProjectItemCard(
                     )
                 ) {
                     Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Drag & Drop Editor", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Editor", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+
+                OutlinedButton(
+                    onClick = onPreview,
+                    modifier = Modifier
+                        .weight(1.1f)
+                        .height(42.dp)
+                        .testTag("preview_project_btn_${project.id}"),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = SleekSecondary),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SleekSecondary.copy(alpha = 0.6f))
+                ) {
+                    Icon(Icons.Default.PhoneAndroid, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Preview", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
 
                 OutlinedButton(
@@ -1109,7 +1140,7 @@ fun ProjectItemCard(
                 ) {
                     Icon(Icons.Default.Build, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Build APK", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text("Build", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
