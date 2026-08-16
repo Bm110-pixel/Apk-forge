@@ -1,0 +1,67 @@
+  - name: Set up JDK
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
+
+  - name: Download Android command-line tools
+    run: |
+      mkdir -p $HOME/android-sdk/cmdline-tools
+      curl -sSLo cmdline.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+      unzip -q cmdline.zip -d $HOME/android-sdk/cmdline-tools
+      mv $HOME/android-sdk/cmdline-tools/cmdline-tools $HOME/android-sdk/cmdline-tools/latest
+
+  - name: Configure Android SDK env
+    run: |
+      echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+      echo "PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
+
+  - name: Install SDK packages & accept licenses
+    run: |
+      yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+      $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+
+  - name: Build debug APK (install gradle if no wrapper + create debug keystore)
+    run: |
+      set -e
+
+      # Generate debug.keystore at repository root if missing (app expects rootDir/debug.keystore)
+      if [ ! -f "${GITHUB_WORKSPACE}/debug.keystore" ]; then
+        echo "Creating debug.keystore..."
+        keytool -genkeypair -v -storetype JKS \
+          -keystore "${GITHUB_WORKSPACE}/debug.keystore" \
+          -storepass android -keypass android \
+          -alias androiddebugkey \
+          -dname "CN=Android Debug,O=Android,C=US" \
+          -keyalg RSA -keysize 2048 -validity 10000
+        ls -l debug.keystore || true
+      else
+        echo "debug.keystore already present"
+      fi
+
+      # Use project Gradle wrapper if present; otherwise download a compatible Gradle CLI
+      if [ -x "./gradlew" ]; then
+        echo "Using project Gradle wrapper"
+        chmod +x ./gradlew
+        ./gradlew assembleDebug --no-daemon
+      else
+        echo "Gradle wrapper not found — installing Gradle CLI"
+        GRADLE_VERSION=8.4.1
+        wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+        unzip -q "gradle-${GRADLE_VERSION}-bin.zip" -d /opt
+        export GRADLE_HOME=/opt/gradle-${GRADLE_VERSION}
+        export PATH=$GRADLE_HOME/bin:$PATH
+        gradle --version
+        gradle assembleDebug --no-daemon
+      fi
+
+  - name: Show APK outputs (for debugging artifact path)
+    run: |
+      ls -R app/build/outputs || true
+      find app/build -type f -name "*.apk" -print || true
+
+  - name: Upload APK artifact
+    uses: actions/upload-artifact@v4
+    with:
+      name: apk
+      path: app/build/outputs/apk/debug/*.apk
