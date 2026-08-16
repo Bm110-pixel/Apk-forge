@@ -14,7 +14,7 @@ import com.example.data.model.UiComponent
         UiComponent::class,
         ApkBuildRecord::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

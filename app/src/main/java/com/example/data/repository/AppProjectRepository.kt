@@ -39,9 +39,10 @@ class AppProjectRepository(private val database: AppDatabase) {
         config: com.example.data.model.AiConfiguration = com.example.data.model.AiConfiguration()
     ): AppProject = withContext(Dispatchers.IO) {
         val result = AiAppGenerator.generateApp(prompt, config)
-        projectDao.insertProject(result.project)
+        val projToInsert = result.project.copy(isSynced = false)
+        projectDao.insertProject(projToInsert)
         componentDao.insertComponents(result.components)
-        return@withContext result.project
+        return@withContext projToInsert
     }
 
     suspend fun createProjectFromTemplate(templateId: String): AppProject = withContext(Dispatchers.IO) {
@@ -51,20 +52,21 @@ class AppProjectRepository(private val database: AppDatabase) {
             "template_blog" -> AiAppGenerator.createBlogTemplate()
             else -> AiAppGenerator.synthesizeApp(templateId)
         }
-        projectDao.insertProject(result.project)
+        val projToInsert = result.project.copy(isSynced = false)
+        projectDao.insertProject(projToInsert)
         componentDao.insertComponents(result.components)
-        return@withContext result.project
+        return@withContext projToInsert
     }
 
     suspend fun saveProject(project: AppProject) = withContext(Dispatchers.IO) {
-        projectDao.updateProject(project.copy(updatedAt = System.currentTimeMillis()))
+        projectDao.updateProject(project.copy(updatedAt = System.currentTimeMillis(), isSynced = false))
     }
 
     suspend fun toggleStar(projectId: String) = withContext(Dispatchers.IO) {
         val proj = projectDao.getProjectById(projectId) ?: return@withContext
         val newStarred = !proj.isStarred
         val newCount = if (newStarred) proj.starCount + 1 else (proj.starCount - 1).coerceAtLeast(0)
-        projectDao.updateProject(proj.copy(isStarred = newStarred, starCount = newCount))
+        projectDao.updateProject(proj.copy(isStarred = newStarred, starCount = newCount, isSynced = false))
     }
 
     suspend fun incrementViewCount(projectId: String) = withContext(Dispatchers.IO) {
@@ -121,7 +123,25 @@ class AppProjectRepository(private val database: AppDatabase) {
     private suspend fun updateProjectTimestamp(projectId: String) {
         val proj = projectDao.getProjectById(projectId)
         if (proj != null) {
-            projectDao.updateProject(proj.copy(updatedAt = System.currentTimeMillis()))
+            projectDao.updateProject(proj.copy(updatedAt = System.currentTimeMillis(), isSynced = false))
+        }
+    }
+
+    suspend fun syncOfflineChanges(cloudSyncEngine: com.example.data.cloud.FirebaseCloudSyncEngine): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val unsynced = projectDao.getUnsyncedProjects()
+            var count = 0
+            for (proj in unsynced) {
+                val comps = componentDao.getComponentsList(proj.id)
+                val res = cloudSyncEngine.uploadProjectToCloud(proj, comps)
+                if (res.isSuccess) {
+                    projectDao.updateProjectSyncStatus(proj.id, true)
+                    count++
+                }
+            }
+            Result.success(count)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 

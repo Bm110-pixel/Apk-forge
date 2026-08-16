@@ -18,9 +18,6 @@ class TutorialManager private constructor(private val context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("apk_builder_tutorial_prefs", Context.MODE_PRIVATE)
 
-    private val _tutorialProgress = MutableStateFlow(loadProgress())
-    val tutorialProgress: StateFlow<TutorialProgress> = _tutorialProgress.asStateFlow()
-
     val tutorialSteps: List<TutorialStep> = listOf(
         TutorialStep(
             id = "step_welcome",
@@ -114,6 +111,9 @@ class TutorialManager private constructor(private val context: Context) {
             actionLabel = "Complete Tutorial & Claim Reward"
         )
     )
+
+    private val _tutorialProgress = MutableStateFlow(loadProgress())
+    val tutorialProgress: StateFlow<TutorialProgress> = _tutorialProgress.asStateFlow()
 
     private fun loadProgress(): TutorialProgress {
         val completedSet = prefs.getStringSet(KEY_COMPLETED_STEPS, emptySet()) ?: emptySet()

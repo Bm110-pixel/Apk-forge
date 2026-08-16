@@ -30,6 +30,12 @@ interface AppProjectDao {
 
     @Query("DELETE FROM app_projects WHERE id = :id")
     suspend fun deleteProjectById(id: String)
+
+    @Query("SELECT * FROM app_projects WHERE isSynced = 0")
+    suspend fun getUnsyncedProjects(): List<AppProject>
+
+    @Query("UPDATE app_projects SET isSynced = :isSynced WHERE id = :projectId")
+    suspend fun updateProjectSyncStatus(projectId: String, isSynced: Boolean)
 }
 
 @Dao

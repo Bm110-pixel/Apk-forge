@@ -60,7 +60,8 @@ data class AppProject(
     val viewCount: Int = 142,
     val downloadCount: Int = 38,
     val starCount: Int = 19,
-    val isStarred: Boolean = false
+    val isStarred: Boolean = false,
+    val isSynced: Boolean = true
 )
 
 @Entity(tableName = "ui_components")

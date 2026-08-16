@@ -74,7 +74,28 @@ class StudioViewModel(application: Application) : AndroidViewModel(application) 
 
         viewModelScope.launch {
             repository.seedDefaultDataIfEmpty()
+            trySyncOfflineChanges()
         }
+    }
+
+    fun trySyncOfflineChanges() {
+        viewModelScope.launch {
+            if (isNetworkAvailable(getApplication())) {
+                val result = repository.syncOfflineChanges(cloudSyncEngine)
+                result.onSuccess { count ->
+                    if (count > 0) {
+                        _userMessage.value = "Synced $count offline project edit(s) to cloud automatically!"
+                    }
+                }
+            }
+        }
+    }
+
+    private fun isNetworkAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager ?: return false
+        val network = connectivityManager.activeNetwork ?: return false
+        val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
     fun generateAppFromPrompt(
