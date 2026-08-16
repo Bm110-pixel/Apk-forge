@@ -1,0 +1,7 @@
+{
+  "name": "AI APK Builder",
+  "description": "Generate, visually edit with drag-and-drop, and download or install Android APKs directly on your mobile device with AI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
